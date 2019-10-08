@@ -1,0 +1,2 @@
+# TicTacToe
+szakdolgozat lesz ebből
