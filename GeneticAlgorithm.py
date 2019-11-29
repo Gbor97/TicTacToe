@@ -1,17 +1,21 @@
-from basePlayer import BasePlayer
 import itertools
 from math import inf
 from random import choice
 import numpy as np
-from generals import State
 import pickle
+
+from generals import State
 from game import Board
 from game import Controller
-from generals import *
+from generals import PlayerEnum
+from qlearningPlayer import QLearningPlayer
+from randomPlayer import RandomPlayer
+from basePlayer import BasePlayer
 
 class GeneticAlgorithm():
-    def __init__(self, pop_size, generations, parents_number, learnMatch_number, 
-                 testMatch_number, elitism_num, mutation_num, mutation_prob):
+    def __init__(self, board_size, pop_size, generations, parents_number, parents_seletion_mode, 
+                    learnMatch_number, testMatch_number, elitism_num, mutation_num, mutation_prob):
+        self.board_size = board_size
         self.pop_size = pop_size
         self.generations = generations
         self.parents_number = parents_number
@@ -20,12 +24,13 @@ class GeneticAlgorithm():
         self.mutation_num = mutation_num
         self.mutation_prob = mutation_prob
         self.elitism_num = elitism_num
+        self.parents_seletion_mode = parents_seletion_mode
         
     def makeInitialPopulation(self):
         population = []
-        for _ in itertools.repeat(None, self.pop_size -1):
+        for _ in itertools.repeat(None, self.pop_size):
             population.append(np.random.uniform(low=0.0, high=1.0, size=3))
-        population.append([0.2, 0.3, 0.9])
+        #population.append([0.2, 0.3, 0.9])
         return population
 
 
@@ -39,13 +44,15 @@ class GeneticAlgorithm():
         fitness = []
         for i in range(int(game_number)):
             board = Board(board_size)
-            cont = Controller(PlayerEnum.QLearningPlayer, PlayerEnum.Random, board)
+            player1 = QLearningPlayer(board)
+            player2 = RandomPlayer(board)
+            cont = Controller(player1, player2, board)
             cont.player1.alpha = population[i][0]
             cont.player1.exp_rate = population[i][1]
             cont.player1.decay_gamma = population[i][2]
             for _ in itertools.repeat(None, self.learnMatch_number):
                 cont.trainLoop()
-            cont.player1.exp_rate = 0.01
+            cont.player1.exp_rate = 0.00
             ''' cont.player2.alpha = population[i + 1][0]
             cont.player2.exp_rate = population[i + 1][1]
             cont.player2.decay_gamma = population[i + 1][2] '''
@@ -91,7 +98,7 @@ class GeneticAlgorithm():
             possible_parents = []
             for _ in itertools.repeat(None, K):
                 possible_parents.append(np.random.randint(0, self.pop_size))
-            for _ in itertools.repeat(None, possible_parents):
+            for _ in itertools.repeat(None, len(possible_parents)):
                 idx = fitness.index(max(fitness))
             parents.append(population[idx])
         return parents
@@ -106,22 +113,21 @@ class GeneticAlgorithm():
 
     def rouletteWheelParents(self, fitness, population):
         parents = []
-        fix_points = np.random.uniform(low=0.0, high=np.sum(fitness), size=self.parents_number))
+        fix_points = np.random.uniform(low=0.0, high=np.sum(fitness), size=self.parents_number)
         sum_part = 0
-        for i in range(self.pop_size)
+        for i in range(self.pop_size):
             sum_part = sum_part + fitness[i]
-            for j in range(len(fix_points))
+            for j in range(len(fix_points)):
                 if fix_points[j] <= sum_part:
                     parents.append(population[i])
         return parents
 
     def selectParents(self, fitness, population, selection_mode):
-        parents = []
-        if selection_mode = 0:
+        if selection_mode == 0:
             return self.rouletteWheelParents(fitness, population)
-        elif selection_mode = 1:
+        elif selection_mode == 1:
             return self.tournamentParents(fitness, population, K=5)
-        else:
+        elif selection_mode == 2:
             return self.bestParents(fitness, population)
 
     def crossover(self, parents): #lehetne, hogy sorban megyünk végig szűlőkön, lehetne, hogy random választunk szülőt, és nem lehet overlap, de most az van, hogy lehet overlap
@@ -160,8 +166,8 @@ class GeneticAlgorithm():
         idx = np.random.randint(0, 3)
         egyed[idx] = np.random.random_sample()
 
-    def training(self, start_population):
-        population = start_population
+    def training(self):
+        population = self.makeInitialPopulation()
         generation = 0
         for _ in itertools.repeat(None, self.generations):
             #calc fitness
@@ -170,7 +176,7 @@ class GeneticAlgorithm():
             mutation = 0
             fitness = self.fitnessFunction(population, 3)
             #Selecting the best parents in the population for mating.
-            parents = self.selectParents(fitness, population)
+            parents = self.selectParents(fitness, population, self.parents_seletion_mode)
             # Generating next generation using crossover.
             new_population = self.crossover(parents)
             for _ in itertools.repeat(None, self.mutation_num):
@@ -184,11 +190,4 @@ class GeneticAlgorithm():
             population = new_population
             print("mutation: "+ str(mutation))
         return population
-
-
-ga = GeneticAlgorithm(16, 20, 6, 600, 3, 30)
-print("start")
-population = ga.makeInitialPopulation()
-ga.training(population)
-ga.fitnessFunction(population, 3)
 

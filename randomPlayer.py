@@ -2,9 +2,6 @@ from basePlayer import BasePlayer
 import numpy as np
 
 class RandomPlayer(BasePlayer):
-    def __init__(self, sign, type, board, cont):
-        BasePlayer.__init__(self, sign, type, board, cont)
-        self.board = board
 
 
     def move(self):

@@ -4,112 +4,48 @@ from random import choice
 import numpy as np
 import collections
 import itertools
+
 from basePlayer import BasePlayer
-from generals import *
+from generals import State
+from generals import getHash
+from generals import transfromBoardState5
+from generals import PlayerEnum
+from board import Board
 from minimaxPlayer import MinMaxPlayer
 from randomPlayer import RandomPlayer
 from qlearningPlayer import QLearningPlayer
 from humanPlayer import HumanPlayer
+from decisionTreePlayer import SVMPlayer
 
 
-class Cell:
-    def __init__(self):
-        self.state = State.EMPTY
-    
 
-    def isFree(self):
-        if (self.state == State.EMPTY):
-            return True
-        else:
-            return False
-
-class Board:
-    def __init__(self, size):
-        self.size = size
-        self.table = [[Cell() for x in range(size)] for y in range(size)] 
-
-    def validateMove(self, moveX, moveY):
-        if (moveX < self.size) and (moveY < self.size) and (self.table[moveX][moveY].isFree()):
-            return True
-        return False
-
-    def move(self, moveX, moveY, player):
-        self.table[moveX][moveY].state = player.sign
-        return [moveX, moveY]
-
-    def freeCellCheck(self):
-        free = False
-        for i in range(self.size):
-            for j in range(self.size):
-                if self.table[i][j].state == State.EMPTY:
-                    free = True
-                    break
-        return free
-
-    def empty_cells(self):
-        cells = []
-        for row in range(self.size):
-            for column in range(self.size):
-                if self.table[row][column].state == State.EMPTY:
-                    cells.append([row, column])
-        return cells
-
-    def reset(self):
-        for i in range(self.size):
-            for j in range(self.size):
-                self.table[i][j].state = State.EMPTY
-
-    def print(self):
-        for i in range(self.size):
-            for _ in itertools.repeat(None, self.size):
-                print("----",end = '')
-            print()
-            for j in range(self.size):
-                print(self.table[i][j].state.value, end = '')
-                print(" | ", end = '')
-            print()
 
 class Controller:
-    def __init__(self, playerType1, playerType2, board):
-        if playerType1==PlayerEnum.Human:
-            self.player1 = HumanPlayer(State.X, 1, board, self)
-        elif playerType1==PlayerEnum.MinMax:
-            self.player1 = MinMaxPlayer(State.X, 2, board, self)
-        elif playerType1==PlayerEnum.QLearningPlayer:
-            self.player1 = QLearningPlayer(State.X, 3, board, self)
-        elif playerType1==PlayerEnum.Random:
-            self.player1 = RandomPlayer(State.X, 4, board, self)
-        if playerType2==PlayerEnum.Human:
-            self.player2 = HumanPlayer(State.O, 1, board, self)
-        elif playerType2==PlayerEnum.MinMax:
-            self.player2 = MinMaxPlayer(State.O, 3, board, self)  
-        elif playerType2==PlayerEnum.QLearningPlayer:
-            self.player2 = QLearningPlayer(State.O, 3, board, self) 
-        elif playerType2==PlayerEnum.Random:
-            self.player2 = RandomPlayer(State.O, 4, board, self)
+    def __init__(self, player1, player2, board):
+        self.player1 = player1
+        self.player1.setSign(True)
+        self.player2 = player2
+        self.player2.setSign(False)
         self.board = board 
-         
-        ##else...
 
     def trainLoop(self):
         while self.board.freeCellCheck():
             win = False
             move = self.player1.move()
-            if self.checkWin(self.player1.sign, move):
+            if self.board.checkWin(self.player1.sign, move):
                 win = True
                 self.board.reset()
                 return self.player1
             if not self.board.freeCellCheck():
                 break
             move = self.player2.move()
-            if self.checkWin(self.player2.sign, move):
+            if self.board.checkWin(self.player2.sign, move):
                 win = True
                 self.board.reset()
                 return self.player2
         if not win:
             self.board.reset()
             return None
-        
 
     def gameLoop(self):
         while self.board.freeCellCheck():
@@ -117,7 +53,7 @@ class Controller:
             self.board.print()
             print('Player1')
             move = self.player1.move()
-            if self.checkWin(self.player1.sign, move):
+            if self.board.checkWin(self.player1.sign, move):
                 self.board.print()
                 print('*** Congratulations ! Player1 won ! ***')
                 win = True
@@ -127,7 +63,7 @@ class Controller:
                 break
             print('Player2')
             move = self.player2.move()
-            if self.checkWin(self.player2.sign, move):
+            if self.board.checkWin(self.player2.sign, move):
                 self.board.print()
                 print('*** Congratulations ! Player2 won ! ***')
                 win = True
@@ -136,48 +72,6 @@ class Controller:
             self.board.print()
             print('*** DRAW ***')
             return None 
-
-    def make_win_states(self, move):
-        win_states = []
-        #row
-        win_state = []
-        for column in range(self.board.size):
-            win_state.append(self.board.table[move[0]][column].state)
-        win_states.append(win_state) 
-        #column
-        win_state = []
-        for row in range(self.board.size):
-            win_state.append(self.board.table[row][move[1]].state)
-        win_states.append(win_state)
-        """ for row in range(board.size):
-            win_state = []
-            for column in range(board.size):
-                win_state.append(board.table[row][column].state)
-            win_states.append(win_state)
-        #columns
-        for column in range(board.size):
-            win_state = []
-            for row in range(board.size):
-                win_state.append(board.table[row][column].state)
-            win_states.append(win_state) """
-        #diagonal from left to right
-        win_state = []
-        for row in range(self.board.size):
-                win_state.append(self.board.table[row][row].state)
-        win_states.append(win_state)
-        #diagonal from right to left
-        win_state = []
-        for row in range(self.board.size):
-                win_state.append(self.board.table[row][self.board.size - 1 - row].state)
-        win_states.append(win_state)
-        return win_states
-
-    def checkWin(self, sign, move):
-        win_states = self.make_win_states(move)
-        state = []
-        for _ in itertools.repeat(None, self.board.size):
-            state.append(sign)
-        return state in win_states
 
     def training(self, player1Learning = False, player2Learning = False, rounds=10000):
         for i in range(rounds):
@@ -200,6 +94,66 @@ class Controller:
                 self.player2.feedReward(0) #lose
             self.board.reset()
 
+def generateStates(player1Type, plyaer2Type, whichPlayerLearn, boardSize, gameNumber):
+    board = Board(boardSize)
+    cont = Controller(player1Type, plyaer2Type, board)
+    boardStates = []
+    boardStatesTotal = []
+    winner = -1
+    for _ in itertools.repeat(None, gameNumber):
+        end = False
+        number_of_appends = 0
+        while board.freeCellCheck():
+            win = False
+            #save the boardState before the move
+            boardState = transfromBoardState5(getHash(board.table))
+            move = cont.player1.move()
+            if whichPlayerLearn == 1:
+                if boardState not in boardStates:
+                    boardState.append(move[0])
+                    boardState.append(move[1])
+                    boardStates.append(boardState)
+                    number_of_appends = number_of_appends + 1
+            if board.checkWin(cont.player1.sign, move):
+                win = True
+                end = True
+                winner = 1
+                board.reset()
+                break
+            if not board.freeCellCheck():
+                break
+            boardState = transfromBoardState5(getHash(board.table))
+            move = cont.player2.move()
+            if whichPlayerLearn == 2:
+                if boardState not in boardStates:
+                    boardState.append(move[0])
+                    boardState.append(move[1])
+                    boardStates.append(boardState)
+                    number_of_appends = number_of_appends + 1
+            if board.checkWin(cont.player2.sign, move):
+                win = True
+                end = True
+                winner = 2
+                board.reset()
+                break
+        if not win:
+            board.reset()
+            end = True
+            winner = 0
+        if end:
+            if winner == whichPlayerLearn:    
+                boardStatesTotal = boardStatesTotal + boardStates
+            boardStates = []
+    #the last move is the winnig move, it is not necessary
+    del boardStatesTotal[-1]
+    #becouse wu use transfromBoardState5 -> one cell represented by 2 value (which sign there)
+    Matrix = np.matrix(boardStatesTotal)
+    Y_Xmoves = Matrix[:,2*boardSize*boardSize]
+    Y_Ymoves = Matrix[:,2*boardSize*boardSize+1]
+    Matrix = np.delete(Matrix, 2*boardSize*boardSize+1, 1)
+    X = np.delete(Matrix, 2*boardSize*boardSize, 1)
+    return [X, Y_Xmoves, Y_Ymoves]
+    
 
 
 print('Wellcome bitten2')
