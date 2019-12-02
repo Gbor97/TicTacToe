@@ -6,18 +6,27 @@ import pickle
 
 from basePlayer import BasePlayer
 from generals import State
-from generals import getRivalSign
+from generals import getRivalSign, save, load
 from board import Board
 from board import Cell
 
 class QLearningPlayer(BasePlayer):
-    def __init__(self, board, epszilon = 0.3, alpha = 0.2, gamma = 0.9):
-        BasePlayer.__init__(self, board)
+    def __init__(self, learning_file = None, alpha = 0.2, epszilon = 0.3, gamma = 0.9, 
+                        win_reward = 1, draw_reward = 0.3, lose_reward = 0):
+        BasePlayer.__init__(self)
         self.states = []  # record all positions taken
         self.alpha = alpha 
-        self.exp_rate = epszilon
         self.decay_gamma = gamma
-        self.states_value = {}  # state -> value
+        self.win_reward = win_reward
+        self.draw_reward = draw_reward
+        self.lose_reward = lose_reward
+        self.name = "QLearningPlayer"
+        if learning_file == None:
+            self.states_value = {} # state -> value
+            self.exp_rate = epszilon
+        else:
+            self.states_value = load(learning_file)
+            self.exp_rate = 0.0
 
     # get unique hash of current board state
     def getHash(self, boardState):
@@ -61,7 +70,25 @@ class QLearningPlayer(BasePlayer):
         return moved
 
     # at the end of game, backpropagate and update states value
-    def feedReward(self, reward):
+    def feedReward(self, game_result):
+        if game_result == 1:
+            reward = self.win_reward
+        elif game_result == 0:
+            reward = self.draw_reward
+        elif game_result == -1:
+            reward = self.lose_reward
+        if self.sign == State.X:
+            try:
+                #load states_value from a second QlearningPlayer
+                loaded_states_value = load("policy_3x3_100000_round_against_RandomPlayer_secondplayer")
+            except:
+                print("There's no proper file for see the future.")
+        else:
+            try:
+                #load states_value from a second QlearningPlayer
+                loaded_states_value = load("policy_3x3_100000_round_against_RandomPlayer_firstplayer")
+            except:
+                print("There's no proper file for see the future.")
         states_rev = self.states[::-1]
         for i in range(len(self.states)):
             st = states_rev[i]
@@ -78,7 +105,16 @@ class QLearningPlayer(BasePlayer):
             for poss_move in b.empty_cells():
                 b.table[poss_move[0]][poss_move[1]].state = self.rival_sign
                 possible_boardState_hash = self.getHash(b.table)
-                value = self.states_value.get(possible_boardState_hash)
+                if self.sign == State.X:
+                    try:
+                        value = loaded_states_value.get(possible_boardState_hash)
+                    except:
+                        value = None
+                else:
+                    try:
+                        value = loaded_states_value.get(possible_boardState_hash)
+                    except:
+                        value = None
                 if value != None:
                   possible_q_values.append(value)
                 else:

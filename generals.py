@@ -1,13 +1,6 @@
 from enum import Enum
 import pickle
 
-class PlayerEnum(Enum):
-    Human = 1
-    MinMax = 2
-    QLearningPlayer = 3
-    Random = 4
-    SVMPlayer = 5
-
 class State(Enum):
     EMPTY = 0
     X = 1
@@ -31,20 +24,6 @@ def load(file):
     thing = pickle.load(fr)
     fr.close()
     return thing
-
-def transfromBoardState5(boardStateHash):
-    result = []
-    for i in range(len(boardStateHash)):
-        if boardStateHash[i] == '1':
-            result.append(1)
-            result.append(0)
-        elif boardStateHash[i] == '2':
-            result.append(0)
-            result.append(1)
-        else:
-            result.append(0)
-            result.append(0)
-    return result
 
 # get unique hash of current board state
 def getHash(boardState):

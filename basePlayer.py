@@ -1,12 +1,12 @@
-from generals import PlayerEnum
 from generals import State
 from enum import Enum
 
 class BasePlayer:
-    def __init__(self, board):
+    def __init__(self):
         self.sign = State.EMPTY
         self.rival_sign = State.EMPTY
-        self.board = board
+        self.board = None
+        self.name = None
 
     def move(self, moveX, moveY):
         raise NotImplementedError()

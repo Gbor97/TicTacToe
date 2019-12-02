@@ -6,14 +6,15 @@ from generals import State
 from generals import getRivalSign
 from basePlayer import BasePlayer
 
-class MinMaxPlayer(BasePlayer):
-    def __init__(self, board, depth = 6, heuristic = 4, pruning = True):
-        BasePlayer.__init__(self, board)
+class MiniMaxPlayer(BasePlayer):
+    def __init__(self, depth = 6, heuristic = 4, pruning = True):
+        BasePlayer.__init__(self)
         self.MAX = 1
         self.MIN = -1 
         self.depth = depth
         self.pruning = pruning
         self.heuristic = heuristic
+        self.name = "MinMaxPlayer"
         random.seed(7)
 
     def getStatesOfArray(self, array_of_cells):
@@ -197,12 +198,6 @@ class MinMaxPlayer(BasePlayer):
                 beta = min(beta, score[2])
                 if beta <= alpha:
                     break
-        """ print(depth)
-        print(best_scores) """
-        """ print(player)
-        print(best_scores)
-        choosen = random.choice(best_scores)
-        print(choosen) """
         return best
         
 
